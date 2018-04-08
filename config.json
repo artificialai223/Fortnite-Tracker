@@ -1,0 +1,4 @@
+{
+    "platforms": ["pc", "xbox", "psn"],
+    "prefix": "!"
+}
