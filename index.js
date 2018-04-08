@@ -2,16 +2,11 @@ const Discord = require('discord.js');
 const fetch = require('node-fetch');
 const auth = require('./auth.json');
 const config = require('./config.json');
-
 const bot = new Discord.Client();
+const onReady = require('./events/ready')
 
 bot.on('ready', () => {
-    if (!bot.user.avatar) {
-        bot.user.setAvatar('./avatar.png').catch('error' + console.error);
-    }
-    bot.user.setActivity('YouTube', { type: 'WATCHING' })
-        .then(presence => console.log(`Activity set to ${presence.game ? presence.game.name : 'none'}`))
-        .catch(console.error);
+    onReady(bot);
 });
 
 bot.on('message', async msg => {
@@ -23,17 +18,23 @@ bot.on('message', async msg => {
 
         do {
             if (config.platforms.includes(args[1]) && args.length === 3) {
+                msg.channel.startTyping();
 
                 try {
                     let platformSelected = args[1]
                     let userSelected = args[2].toLowerCase();
                     let user = await getUserByPlatform(userSelected, platformSelected);
                     let json = await user.json();
-                    var found = json.lifeTimeStats.find((el) => el.key === 'Wins')
+
+                    if (json.error) {
+                        throw new Error('Player not Found');
+                    }
+                    let found = json.lifeTimeStats.find((el) => el.key === 'Wins')
                     msg.reply(`${found.value} wins`);
 
                 } catch (error) {
-                    console.log(error);
+                    msg.reply(`:x: ${error}`);
+                    msg.channel.stopTyping();
                 }
                 break;
             }
@@ -49,7 +50,8 @@ const getUserByPlatform = (user, platform = config.platforms[0]) => {
             },
         })
         .then(res => res)
-        .catch(error => reject(error))
+        .catch(error => false)
 }
+
 
 bot.login(auth.discordToken);
